@@ -37,6 +37,34 @@
     <img src="icons/Icon-192.png" alt="GrowStep">
     <div class="bar"></div>
   </div>
+  <!-- O GrowStep é usado sempre na horizontal. Onde o navegador não deixa travar
+       (iPhone/iPad), aparece este aviso enquanto o aparelho estiver em pé. -->
+  <div id="rotate" aria-live="polite">
+    <svg viewBox="0 0 64 64" width="84" height="84" aria-hidden="true">
+      <rect x="22" y="8" width="20" height="36" rx="4" fill="none" stroke="#5B5FC7" stroke-width="3"/>
+      <rect x="14" y="36" width="36" height="20" rx="4" fill="#ECECFB" stroke="#5B5FC7" stroke-width="3"/>
+      <path d="M46 14c6 3 9 8 9 14" fill="none" stroke="#3DBE7A" stroke-width="3" stroke-linecap="round"/>
+      <path d="M51 26l4 3 3-5" fill="none" stroke="#3DBE7A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <strong>Gire o aparelho</strong>
+    <span>O GrowStep funciona com a tela deitada.</span>
+  </div>
+  <style>
+    #rotate { display: none; }
+    @media (orientation: portrait) and (pointer: coarse) {
+      body:not(.installing) #rotate { display: flex; position: fixed; inset: 0; z-index: 2147483646; background: #F6F5F1;
+        flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 24px;
+        font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: #6B6E85; }
+      #rotate strong { font-size: 22px; color: #23253A; }
+      #rotate svg { animation: tilt 2.4s ease-in-out infinite; }
+    }
+    @keyframes tilt { 0%, 35% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+  </style>
+  <script>
+    // Android (app instalado pelo navegador): trava de verdade na horizontal quando o navegador permite.
+    try { screen.orientation?.lock?.('landscape').catch(() => {}); } catch (_) {}
+  </script>
+
   <!-- iPhone/iPad no Safari (fora do app instalado): como colocar o ícone na tela de início.
        O iOS não permite instalar automaticamente; este é o único caminho. -->
   <div id="iosInstall" role="dialog" aria-modal="true" aria-labelledby="iosTitle" hidden>
@@ -86,8 +114,11 @@
       box.querySelector('[data-where]').textContent = otherBrowser ? 'no menu do navegador' : iPad ? 'no alto da tela, ao lado do endereço' : 'na barra de baixo do Safari';
       box.querySelector('[data-other-browser]').hidden = !otherBrowser;
       box.hidden = false;
+      // Instruções de instalação primeiro (no Safari é mais fácil com o aparelho em pé).
+      document.body.classList.add('installing');
       document.getElementById('iosLater').onclick = () => {
         box.hidden = true;
+        document.body.classList.remove('installing');
         try { localStorage.setItem('gs-ios-install', 'depois'); } catch (_) {}
       };
     })();
