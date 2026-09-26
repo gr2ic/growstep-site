@@ -97,6 +97,18 @@
     window.addEventListener('flutter-first-frame', () => document.getElementById('splash')?.remove());
     // Guarda o app no aparelho (abre sem internet). O sw.js é gerado por tools/build_pwa.mjs.
     if ('serviceWorker' in navigator) {
+      // Versão nova publicada: o sw.js novo assume na hora. Se isso acontecer
+      // logo na abertura, recarrega para já mostrar a versão nova; depois disso,
+      // a atualização fica para a próxima abertura (nunca interrompe uma folha).
+      const openedAt = Date.now();
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController && !reloaded && Date.now() - openedAt < 15000) {
+          reloaded = true;
+          location.reload();
+        }
+      });
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
     }
   </script>
