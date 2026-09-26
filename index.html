@@ -20,6 +20,14 @@
   .cta a.btn { display: inline-block; background: var(--purple); color: #fff; text-decoration: none; font-weight: 800;
                font-size: 18px; padding: 14px 28px; border-radius: 14px; }
   .cta p { color: var(--soft); font-size: 15px; margin: 12px auto 0; max-width: 560px; }
+  .hidden { display: none !important; }
+  .modal { position: fixed; inset: 0; background: rgba(35, 37, 58, .45); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet { background: #fff; border-radius: 22px 22px 0 0; padding: 24px 22px 28px; width: min(560px, 100%); box-sizing: border-box; }
+  .sheet h2 { margin: 0 0 6px; color: var(--purple); }
+  .sheet ol { padding-left: 22px; }
+  .sheet li { margin: 10px 0; }
+  .muted { color: var(--soft); font-size: 15px; }
+  .close { font: inherit; font-weight: 700; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: #fff; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -30,8 +38,25 @@
     <p>Matemática, Português, Inglês, Ciências, História, Geografia e, no Ensino Médio e no Pré-Vest, todas as matérias do ENEM. Com teste de nível, folhas diárias e acompanhamento dos pais.</p>
   </section>
   <div class="cta">
-    <a class="btn" href="app/">Abrir o GrowStep</a>
-    <p>No iPhone e no iPad: abra no Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início". No computador e no Android, funciona direto no navegador.</p>
+    <a class="btn" id="open" href="app/">Abrir o GrowStep</a>
+    <p id="openHint">Funciona no computador, no Android, no iPhone e no iPad.</p>
+    <p id="otherWays" class="hidden"><a href="app/">Usar no navegador, sem instalar</a></p>
+  </div>
+
+  <!-- Passo a passo do Android (aparece depois de tocar em baixar). -->
+  <div id="androidSteps" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="androidTitle">
+    <div class="sheet">
+      <h2 id="androidTitle">Instalando no Android</h2>
+      <p id="androidFile" class="muted"></p>
+      <ol>
+        <li>Quando o download terminar, toque em <strong>Abrir</strong> (ou abra o arquivo nas notificações).</li>
+        <li>Se o Android pedir, permita <strong>"Instalar apps desta fonte"</strong> para o navegador e volte.</li>
+        <li>Toque em <strong>Instalar</strong>. Pronto: o GrowStep aparece junto com os outros apps.</li>
+      </ol>
+      <p class="muted">O Chrome pode avisar que o arquivo "pode ser perigoso": é o aviso padrão para apps baixados fora da Play Store. O app é assinado pela GrowStep.</p>
+      <p><a id="androidAgain" href="#">Baixar de novo</a><span id="androidOldWrap" class="hidden"> · <a id="androidOld" href="#">Aparelho mais antigo? Use esta versão</a></span> · <a href="app/">Usar no navegador</a></p>
+      <button class="close" data-close>Fechar</button>
+    </div>
   </div>
   <div class="cards">
     <div class="card"><h3>Teste de nível</h3><p>Começa no ponto certo, pela idade e pela série.</p></div>
@@ -43,5 +68,65 @@
   <p style="text-align:center;color:var(--soft);margin-top:30px">Em fase de testes com famílias. Contato: <a href="mailto:contato@growstep.com.br">contato@growstep.com.br</a></p>
 </div></main>
 <footer>GrowStep · <a href="termos/">Termos de Uso</a> · <a href="privacidade/">Política de Privacidade</a> · <a href="excluir-conta/">Excluir conta</a></footer>
+<script>
+// Reconhece o aparelho e adapta o botão: Android baixa o APK; iPhone/iPad
+// abre o app com o passo a passo de "Adicionar à Tela de Início".
+(() => {
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); // iPadOS se apresenta como Mac
+  const isAndroid = /Android/.test(ua);
+  const $ = (id) => document.getElementById(id);
+  const open = $('open');
+
+  if (isIOS) {
+    const device = /iPad/.test(ua) || /Macintosh/.test(ua) ? 'iPad' : 'iPhone';
+    open.textContent = `Instalar no ${device}`;
+    open.href = 'app/?instalar=ios';
+    $('openHint').textContent = `Abre o app e mostra como colocar o ícone na tela de início do ${device}.`;
+    return;
+  }
+  if (!isAndroid) return; // computador: abre o app no navegador
+
+  const api = 'https://phpqhsfjvaupvsmhskoe.supabase.co';
+  const key = 'sb_publishable_vGdDKP4_6xcySNyPMNlB1A_Zggg_YUq'; // chave pública; só leitura das versões
+  const fileUrl = (path) => `${api}/storage/v1/object/public/releases/${path}`;
+  let latest = null, older = null;
+
+  open.textContent = 'Baixar o app para Android';
+  $('openHint').textContent = 'Baixa o GrowStep direto no seu aparelho.';
+  $('otherWays').classList.remove('hidden');
+
+  // Versão mais nova publicada no painel (a mesma que o app usa para se atualizar).
+  const found = fetch(`${api}/rest/v1/app_releases?select=version_name,version_code,abi,apk_path,size_bytes&abi=in.(arm64-v8a,armeabi-v7a)&order=version_code.desc&limit=4`,
+    { headers: { apikey: key } })
+    .then((r) => (r.ok ? r.json() : []))
+    .then((rows) => {
+      const top = rows.length ? rows[0].version_code : null;
+      latest = rows.find((r) => r.version_code === top && r.abi === 'arm64-v8a') || null;
+      older = rows.find((r) => r.version_code === top && r.abi === 'armeabi-v7a') || null;
+    })
+    .catch(() => {});
+
+  const download = (release) => {
+    const a = document.createElement('a');
+    a.href = fileUrl(release.apk_path);
+    a.download = `GrowStep-${release.version_name}.apk`;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  open.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await found;
+    if (!latest) { location.href = 'app/'; return; } // nada publicado: usa no navegador
+    download(latest);
+    $('androidFile').textContent = `GrowStep ${latest.version_name} · ${Math.round(latest.size_bytes / 1048576)} MB`;
+    $('androidOldWrap').classList.toggle('hidden', !older);
+    $('androidSteps').classList.remove('hidden');
+  });
+  $('androidAgain').addEventListener('click', (e) => { e.preventDefault(); if (latest) download(latest); });
+  $('androidOld').addEventListener('click', (e) => { e.preventDefault(); if (older) download(older); });
+  document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => $('androidSteps').classList.add('hidden')));
+})();
+</script>
 </body>
 </html>

@@ -37,6 +37,61 @@
     <img src="icons/Icon-192.png" alt="GrowStep">
     <div class="bar"></div>
   </div>
+  <!-- iPhone/iPad no Safari (fora do app instalado): como colocar o ícone na tela de início.
+       O iOS não permite instalar automaticamente; este é o único caminho. -->
+  <div id="iosInstall" role="dialog" aria-modal="true" aria-labelledby="iosTitle" hidden>
+    <div class="sheet">
+      <img src="icons/Icon-192.png" alt="" class="logo">
+      <h2 id="iosTitle">Instale o GrowStep no seu <span data-device>iPhone</span></h2>
+      <ol>
+        <li>Toque em <strong>Compartilhar</strong>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-label="ícone Compartilhar"><path fill="none" stroke="#1E7BF2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7.5 7.5 12 3l4.5 4.5M7 11H5.5A1.5 1.5 0 0 0 4 12.5v7A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 18.5 11H17"/></svg>
+          <span data-where>na barra de baixo do Safari</span>.</li>
+        <li>Role e toque em <strong>Adicionar à Tela de Início</strong>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-label="ícone Adicionar"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="#23253A" stroke-width="1.8"/><path d="M12 8v8M8 12h8" stroke="#23253A" stroke-width="1.8" stroke-linecap="round"/></svg>.</li>
+        <li>Toque em <strong>Adicionar</strong>. Depois, abra o GrowStep pelo ícone novo.</li>
+      </ol>
+      <p class="muted" data-other-browser hidden>Se não achar a opção, abra growstep.com.br no <strong>Safari</strong>.</p>
+      <button id="iosLater">Agora não, usar no navegador</button>
+    </div>
+  </div>
+  <style>
+    #iosInstall { position: fixed; inset: 0; z-index: 2147483647; background: rgba(35, 37, 58, .5); display: flex; align-items: flex-end; justify-content: center;
+                  font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: #23253A; }
+    #iosInstall[hidden] { display: none; }
+    #iosInstall .sheet { background: #fff; border-radius: 22px 22px 0 0; padding: 22px 22px calc(22px + env(safe-area-inset-bottom)); width: min(540px, 100%); box-sizing: border-box; }
+    #iosInstall .logo { width: 56px; height: 56px; border-radius: 14px; display: block; }
+    #iosInstall h2 { font-size: 21px; margin: 12px 0 6px; }
+    #iosInstall ol { padding-left: 22px; font-size: 17px; line-height: 1.45; }
+    #iosInstall li { margin: 10px 0; }
+    #iosInstall svg { vertical-align: -5px; margin: 0 2px; }
+    #iosInstall .muted { color: #6B6E85; font-size: 15px; }
+    #iosInstall button { font: inherit; font-weight: 700; width: 100%; padding: 13px; border-radius: 12px; border: 1px solid #E4E3EC; background: #fff; color: #5B5FC7; margin-top: 6px; }
+  </style>
+  <script>
+    (() => {
+      const ua = navigator.userAgent;
+      const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+      const installed = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+      if (!isIOS || installed) return;
+      let dismissed = false;
+      try { dismissed = localStorage.getItem('gs-ios-install') === 'depois'; } catch (_) {}
+      const asked = new URLSearchParams(location.search).has('instalar');
+      if (dismissed && !asked) return;
+      const box = document.getElementById('iosInstall');
+      const iPad = /iPad/.test(ua) || /Macintosh/.test(ua);
+      box.querySelector('[data-device]').textContent = iPad ? 'iPad' : 'iPhone';
+      // No iPad o Compartilhar fica no alto; em outros navegadores, no menu.
+      const otherBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+      box.querySelector('[data-where]').textContent = otherBrowser ? 'no menu do navegador' : iPad ? 'no alto da tela, ao lado do endereço' : 'na barra de baixo do Safari';
+      box.querySelector('[data-other-browser]').hidden = !otherBrowser;
+      box.hidden = false;
+      document.getElementById('iosLater').onclick = () => {
+        box.hidden = true;
+        try { localStorage.setItem('gs-ios-install', 'depois'); } catch (_) {}
+      };
+    })();
+  </script>
   <script>
     // Tira a tela de abertura quando o app desenha o primeiro quadro.
     window.addEventListener('flutter-first-frame', () => document.getElementById('splash')?.remove());
