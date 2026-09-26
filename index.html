@@ -6,6 +6,16 @@
 <title>GrowStep · Aprender. Evoluir. Avançar.</title>
 <meta name="description" content="Estudo diário no ritmo de cada criança: Matemática, Português, Inglês, Ciências, História, Geografia e mais, dos 6 anos ao Pré-Vest.">
 <link rel="icon" href="assets/growstep-simbolo.png">
+<!-- Se alguém adicionar ESTA página à tela de início do iPhone/iPad, o ícone e
+     o nome são os do app, e abrir pelo ícone leva direto para o app. -->
+<link rel="apple-touch-icon" href="app/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="GrowStep">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#5B5FC7">
+<script>
+  if (window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches) location.replace('app/');
+</script>
 <link rel="stylesheet" href="estilo.css">
 <style>
   .hero { text-align: center; padding: 70px 20px 40px; }
