@@ -1,5 +1,5 @@
 // Gerado por tools/build_pwa.mjs — não editar à mão.
-const VERSION = 'growstep-0.15.0+15-1790435223509';
+const VERSION = 'growstep-0.15.0+15-1790436024569';
 const PRECACHE = [
   "./",
   ".last_build_id",
