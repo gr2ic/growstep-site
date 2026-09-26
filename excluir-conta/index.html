@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excluir conta · GrowStep</title>
+<meta name="description" content="Como excluir a conta da família no GrowStep e todos os dados das crianças.">
+<link rel="icon" href="../assets/growstep-simbolo.png">
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  .box { background: #FFF6F5; border: 1px solid #F3D2CE; border-radius: 14px; padding: 18px 20px; margin: 18px 0; }
+  label { display: block; font-weight: 700; margin: 14px 0 6px; }
+  input { width: 100%; max-width: 360px; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+  button { font: inherit; font-weight: 700; padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line); background: #fff; cursor: pointer; margin: 12px 8px 0 0; }
+  button.primary { background: var(--purple); border-color: var(--purple); color: #fff; }
+  button.danger { background: #C62828; border-color: #C62828; color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .hidden { display: none; }
+  .msg { margin-top: 12px; font-weight: 700; }
+  .msg.err { color: #C62828; }
+  .msg.ok { color: #0F7A4B; }
+  ol li { margin: 6px 0; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a href="../"><img src="../assets/growstep-logo.png" alt="GrowStep: Aprender. Evoluir. Avançar."></a>
+  <nav><a href="../termos/">Termos de Uso</a><a href="../privacidade/">Privacidade</a></nav>
+</div></header>
+
+<main><div class="wrap"><article>
+<h1>Excluir a conta da família</h1>
+<p class="meta">GrowStep · GR2 INTELIGENCIA COMERCIAL LTDA</p>
+
+<p>A exclusão apaga <strong>de forma definitiva e imediata</strong>, dos nossos servidores:</p>
+<ul>
+  <li>os perfis das crianças (primeiro nome, data de nascimento, série e avatar);</li>
+  <li>todo o progresso: folhas feitas, respostas, níveis e horários de estudo;</li>
+  <li>o registro de aceite dos termos e o seu login.</li>
+</ul>
+<p>Se outro responsável também usa a mesma conta da família, só o seu acesso é removido e os dados continuam para ele. Não guardamos cópia dos dados excluídos.</p>
+
+<h2>Pelo aplicativo</h2>
+<ol>
+  <li>Abra o GrowStep e toque em <strong>Área dos responsáveis</strong> (é pedido o PIN).</li>
+  <li>No menu <strong>⋮</strong>, toque em <strong>Conta da família</strong>.</li>
+  <li>Toque em <strong>Excluir conta e todos os dados</strong>, digite <strong>EXCLUIR</strong> e confirme.</li>
+</ol>
+
+<h2>Por esta página</h2>
+<p>Entre com a mesma conta que você usa no app.</p>
+
+<section id="login">
+  <button id="google" class="primary">Entrar com Google</button>
+  <div id="stepEmail">
+    <label for="email">Ou receba um código por e-mail</label>
+    <input id="email" type="email" autocomplete="email" placeholder="seu@email.com">
+    <br><button id="sendCode">Enviar código</button>
+  </div>
+  <div id="stepCode" class="hidden">
+    <label for="code">Código de 6 dígitos</label>
+    <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+    <br><button id="verify" class="primary">Entrar</button><button id="back">Voltar</button>
+  </div>
+  <p id="loginMsg" class="msg"></p>
+</section>
+
+<section id="confirm" class="hidden">
+  <div class="box">
+    <p>Conta: <strong id="me"></strong></p>
+    <p>Esta ação <strong>não pode ser desfeita</strong>. Para confirmar, digite <strong>EXCLUIR</strong>:</p>
+    <input id="typed" autocomplete="off">
+    <br><button id="delete" class="danger" disabled>Excluir conta e todos os dados</button><button data-logout>Cancelar e sair</button>
+  </div>
+  <p id="deleteMsg" class="msg"></p>
+</section>
+
+<section id="done" class="hidden">
+  <div class="resumo"><p><strong>Conta excluída.</strong> Os dados da família foram apagados. Nos aparelhos que ainda tiverem o app aberto, basta sair da conta ou desinstalar.</p></div>
+</section>
+
+<h2>Por e-mail</h2>
+<p>Se preferir, escreva para <a href="mailto:contato@growstep.com.br?subject=Privacidade%20-%20excluir%20conta">contato@growstep.com.br</a> com o assunto "Privacidade – excluir conta", a partir do e-mail cadastrado. Fazemos a exclusão em até 15 dias e avisamos por e-mail.</p>
+</article></div></main>
+
+<footer>GrowStep · Aprender. Evoluir. Avançar. · <a href="../termos/">Termos de Uso</a> · <a href="../privacidade/">Política de Privacidade</a></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const sb = supabase.createClient(
+  'https://phpqhsfjvaupvsmhskoe.supabase.co',
+  'sb_publishable_vGdDKP4_6xcySNyPMNlB1A_Zggg_YUq', // chave pública; o acesso é controlado no banco
+);
+const $ = (id) => document.getElementById(id);
+const show = (id) => ['login', 'confirm', 'done'].forEach((x) => $(x).classList.toggle('hidden', x !== id));
+const msg = (id, text, ok = false) => { const el = $(id); el.textContent = text || ''; el.className = 'msg ' + (ok ? 'ok' : 'err'); };
+
+$('google').onclick = async () => {
+  if (location.protocol === 'file:') return msg('loginMsg', 'Abra esta página pelo endereço do site para entrar com Google.');
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+  if (error) msg('loginMsg', 'Não foi possível entrar com Google: ' + error.message);
+};
+$('sendCode').onclick = async () => {
+  const email = $('email').value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return msg('loginMsg', 'Digite um e-mail válido.');
+  $('sendCode').disabled = true;
+  // Só quem já tem conta recebe código (não cria conta nova aqui).
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  $('sendCode').disabled = false;
+  if (error) return msg('loginMsg', 'Não encontramos uma conta com esse e-mail ou não foi possível enviar o código.');
+  $('stepEmail').classList.add('hidden'); $('stepCode').classList.remove('hidden');
+  msg('loginMsg', 'Código enviado. Confira também o spam.', true);
+  $('code').focus();
+};
+$('verify').onclick = async () => {
+  const token = $('code').value.trim();
+  if (token.length < 6) return msg('loginMsg', 'Digite o código de 6 dígitos.');
+  $('verify').disabled = true;
+  const { error } = await sb.auth.verifyOtp({ email: $('email').value.trim(), token, type: 'email' });
+  $('verify').disabled = false;
+  if (error) return msg('loginMsg', 'Código inválido ou vencido. Peça um novo.');
+  msg('loginMsg', '');
+  start();
+};
+$('back').onclick = () => { $('stepCode').classList.add('hidden'); $('stepEmail').classList.remove('hidden'); msg('loginMsg', ''); };
+document.querySelectorAll('[data-logout]').forEach((b) => (b.onclick = async () => { await sb.auth.signOut(); location.reload(); }));
+
+$('typed').oninput = () => { $('delete').disabled = $('typed').value.trim().toUpperCase() !== 'EXCLUIR'; };
+$('delete').onclick = async () => {
+  $('delete').disabled = true;
+  msg('deleteMsg', 'Excluindo...', true);
+  const { error } = await sb.rpc('delete_my_account');
+  if (error) {
+    $('delete').disabled = false;
+    return msg('deleteMsg', 'Não foi possível excluir agora. Tente de novo ou escreva para contato@growstep.com.br.');
+  }
+  await sb.auth.signOut({ scope: 'local' });
+  show('done');
+};
+
+async function start() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return show('login');
+  $('me').textContent = session.user.email;
+  show('confirm');
+}
+sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN') start(); });
+start();
+</script>
+</body>
+</html>

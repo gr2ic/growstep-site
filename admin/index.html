@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel · GrowStep</title>
+<link rel="icon" href="../assets/growstep-simbolo.png">
+<link rel="stylesheet" href="../estilo.css">
+<style>
+  .wrap { max-width: 1180px; }
+  .hidden { display: none !important; }
+  .box { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 24px; margin-bottom: 20px; }
+  .login { max-width: 440px; margin: 40px auto; }
+  label { display: block; font-weight: 700; margin: 12px 0 6px; font-size: 15px; }
+  input, select, textarea { font: inherit; width: 100%; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; }
+  input:focus, select:focus { outline: 2px solid #C9CBF5; border-color: var(--purple); }
+  button { font: inherit; font-weight: 800; border: 0; border-radius: 12px; padding: 11px 18px; cursor: pointer; background: var(--purple); color: #fff; }
+  button.ghost { background: #F1F1FB; color: var(--purple); }
+  button.small { padding: 6px 11px; font-size: 13.5px; border-radius: 9px; }
+  button.green { background: #1FA36A; }
+  button.warn { background: #FCEBEB; color: #A32D2D; }
+  button:disabled { opacity: .55; cursor: default; }
+  .msg { margin-top: 12px; font-weight: 700; }
+  .msg.err { color: #A32D2D; } .msg.ok { color: #0F7A4B; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .top h1 { margin: 0; font-size: 28px; }
+  .who { color: var(--soft); font-size: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+  .card .n { font-size: 30px; font-weight: 900; line-height: 1.1; }
+  .card .l { color: var(--soft); font-size: 13.5px; font-weight: 700; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters input { max-width: 320px; }
+  .filters select { max-width: 220px; }
+  table { font-size: 14.5px; }
+  td.actions { white-space: nowrap; }
+  td.actions button { margin: 2px 2px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12.5px; font-weight: 800; }
+  .b-trial { background: #E4EFFA; color: #185FA5; }
+  .b-expired { background: #FFF1DC; color: #854F0B; }
+  .b-beta { background: #EEEDFE; color: #3C3489; }
+  .b-active { background: #E2F4EB; color: #0F6E56; }
+  .b-blocked { background: #FCEBEB; color: #A32D2D; }
+  .muted { color: var(--soft); font-size: 13px; }
+  .row { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 220px; }
+  @media (max-width: 800px) {
+    table, thead, tbody, tr, td { display: block; }
+    thead { display: none; }
+    tr { border-bottom: 1px solid var(--line); padding: 10px 0; }
+    td { border: none; padding: 3px 0; }
+    td.actions { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <img src="../assets/growstep-logo.png" alt="GrowStep">
+  <nav><span class="muted">Painel gerencial</span></nav>
+</div></header>
+
+<main><div class="wrap" style="padding-top:28px;padding-bottom:60px">
+
+  <!-- Login -->
+  <section id="login" class="box login hidden">
+    <h2 style="margin-top:0;color:var(--ink)">Entrar no painel</h2>
+    <p class="muted">Acesso restrito a administradores do GrowStep. Enviaremos um código para o seu e-mail.</p>
+    <p><button id="google" class="ghost" style="width:100%">Entrar com Google</button></p>
+    <p class="muted" style="text-align:center;margin:4px 0">ou receba um código por e-mail</p>
+    <div id="stepEmail">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" autocomplete="email" placeholder="voce@exemplo.com">
+      <p><button id="sendCode">Receber código</button></p>
+    </div>
+    <div id="stepCode" class="hidden">
+      <label for="code">Código de 6 dígitos</label>
+      <input id="code" inputmode="numeric" maxlength="8" placeholder="••••••" style="font-size:24px;letter-spacing:8px;text-align:center">
+      <p><button id="verify">Entrar</button> <button id="back" class="ghost">Trocar e-mail</button></p>
+    </div>
+    <div id="loginMsg" class="msg"></div>
+  </section>
+
+  <!-- Sem permissão -->
+  <section id="denied" class="box login hidden">
+    <h2 style="margin-top:0;color:var(--ink)">Sem permissão</h2>
+    <p>O e-mail <b id="deniedEmail"></b> não é administrador do GrowStep. Peça a um administrador para incluir você.</p>
+    <button class="ghost" data-logout>Sair</button>
+  </section>
+
+  <!-- Painel -->
+  <section id="panel" class="hidden">
+    <div class="top">
+      <div><h1>Famílias</h1><div class="who">Conectado como <b id="me"></b></div></div>
+      <div><button class="ghost" id="refresh">Atualizar</button> <button class="ghost" data-logout>Sair</button></div>
+    </div>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="box">
+      <div class="filters">
+        <input id="search" placeholder="Buscar por e-mail ou nome da criança">
+        <select id="statusFilter">
+          <option value="">Todas as situações</option>
+          <option value="trial">Em teste</option>
+          <option value="expired">Teste vencido</option>
+          <option value="beta">Beta</option>
+          <option value="active">Assinante</option>
+          <option value="blocked">Bloqueada</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Responsável</th><th>Crianças</th><th>Situação</th><th>Uso</th><th>Desde</th><th>Ações</th></tr></thead>
+          <tbody id="families"></tbody>
+        </table>
+      </div>
+      <div id="panelMsg" class="msg"></div>
+    </div>
+
+    <div class="box">
+      <h2 style="margin-top:0">Versões do app</h2>
+      <p class="muted">Publique aqui o APK de cada processador. O app oferece a atualização na próxima sincronização e só instala depois que a pessoa confirmar. Mantenha só as últimas 3 versões (limite de espaço do plano grátis).</p>
+      <div class="row">
+        <div><label for="relFile">Arquivo APK</label><input id="relFile" type="file" accept=".apk"></div>
+        <div><label for="relAbi">Processador</label>
+          <select id="relAbi"><option value="arm64-v8a">arm64-v8a (maioria dos celulares e tablets)</option><option value="armeabi-v7a">armeabi-v7a (aparelhos antigos)</option><option value="x86_64">x86_64 (emulador)</option></select></div>
+      </div>
+      <div class="row">
+        <div><label for="relName">Versão</label><input id="relName" placeholder="ex.: 0.10.0"></div>
+        <div><label for="relCode">Número da versão</label><input id="relCode" type="number" min="1" placeholder="ex.: 10"></div>
+      </div>
+      <label for="relNotes">O que mudou (aparece para a família)</label>
+      <textarea id="relNotes" rows="3" placeholder="ex.: Rascunho com caneta nas folhas de Matemática."></textarea>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="relMandatory" style="width:auto"> Atualização obrigatória (o app não segue sem atualizar)</label>
+      <p><button id="publish">Publicar versão</button></p>
+      <div id="relMsg" class="msg"></div>
+      <table style="margin-top:10px"><tbody id="releases"></tbody></table>
+    </div>
+
+    <div class="box">
+      <h2 style="margin-top:0">Administradores</h2>
+      <p class="muted">A pessoa precisa ter entrado ao menos uma vez (no app ou neste painel) antes de ser incluída.</p>
+      <div class="row">
+        <div><label for="newAdmin">E-mail do novo administrador</label><input id="newAdmin" type="email"></div>
+        <div style="flex:0"><button id="addAdmin">Incluir</button></div>
+      </div>
+      <table style="margin-top:14px"><tbody id="admins"></tbody></table>
+      <div id="adminMsg" class="msg"></div>
+    </div>
+  </section>
+
+</div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://phpqhsfjvaupvsmhskoe.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_vGdDKP4_6xcySNyPMNlB1A_Zggg_YUq'; // chave pública; o acesso é controlado no banco
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => ['login', 'denied', 'panel'].forEach((x) => $(x).classList.toggle('hidden', x !== id));
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('pt-BR') : '—');
+const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'nunca');
+const msg = (id, text, ok = false) => { const el = $(id); el.textContent = text || ''; el.className = 'msg ' + (ok ? 'ok' : 'err'); };
+
+let families = [];
+
+// ---------- Login ----------
+$('google').onclick = async () => {
+  if (location.protocol === 'file:') {
+    return msg('loginMsg', 'Para entrar com Google, abra o painel pelo endereço do site (ou http://localhost:5500/admin/), não como arquivo.');
+  }
+  // Volta para esta mesma página já logado (o endereço precisa estar liberado
+  // em Supabase → Authentication → URL Configuration → Redirect URLs).
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+  if (error) msg('loginMsg', 'Não foi possível entrar com Google: ' + error.message);
+};
+
+$('sendCode').onclick = async () => {
+  const email = $('email').value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return msg('loginMsg', 'Digite um e-mail válido.');
+  $('sendCode').disabled = true;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  $('sendCode').disabled = false;
+  if (error) return msg('loginMsg', 'Não foi possível enviar o código: ' + error.message);
+  $('stepEmail').classList.add('hidden'); $('stepCode').classList.remove('hidden');
+  msg('loginMsg', 'Código enviado. Confira também o spam.', true);
+  $('code').focus();
+};
+$('verify').onclick = async () => {
+  const code = $('code').value.trim();
+  if (code.length < 6) return msg('loginMsg', 'Digite o código de 6 dígitos.');
+  $('verify').disabled = true;
+  const { error } = await sb.auth.verifyOtp({ email: $('email').value.trim(), token: code, type: 'email' });
+  $('verify').disabled = false;
+  if (error) return msg('loginMsg', 'Código inválido ou vencido. Peça um novo.');
+  msg('loginMsg', '');
+  start();
+};
+$('back').onclick = () => { $('stepCode').classList.add('hidden'); $('stepEmail').classList.remove('hidden'); msg('loginMsg', ''); };
+$('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('verify').click(); });
+$('email').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('sendCode').click(); });
+document.querySelectorAll('[data-logout]').forEach((b) => (b.onclick = async () => { await sb.auth.signOut(); location.reload(); }));
+
+// ---------- Painel ----------
+async function start() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return show('login');
+  const { data: isAdmin, error } = await sb.rpc('is_admin');
+  if (error || !isAdmin) { $('deniedEmail').textContent = session.user.email; return show('denied'); }
+  $('me').textContent = session.user.email;
+  show('panel');
+  await loadAll();
+}
+
+async function loadAll() {
+  msg('panelMsg', '');
+  const [summary, fams, admins] = await Promise.all([
+    sb.rpc('admin_summary'), sb.rpc('admin_families'), sb.from('admins').select('user_id, email, created_at').order('created_at'),
+  ]);
+  if (summary.error || fams.error) return msg('panelMsg', 'Erro ao carregar: ' + (summary.error || fams.error).message);
+  renderCards(summary.data[0]);
+  families = fams.data;
+  renderFamilies();
+  renderAdmins(admins.data || []);
+  loadReleases();
+}
+
+function renderCards(s) {
+  const items = [
+    ['Famílias', s.families], ['Beta', s.beta], ['Em teste', s.trial_active], ['Teste vencido', s.trial_expired],
+    ['Assinantes', s.active], ['Bloqueadas', s.blocked], ['Crianças', s.children],
+    ['Crianças ativas (7 dias)', s.active_children_7d], ['Folhas (7 dias)', s.sheets_7d],
+  ];
+  $('cards').innerHTML = items.map(([l, n]) => `<div class="card"><div class="n">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('');
+}
+
+function situation(f) {
+  if (f.access_status === 'trial') {
+    const expired = new Date(f.trial_ends_at) <= new Date();
+    return expired
+      ? { key: 'expired', html: `<span class="badge b-expired">Teste vencido</span><div class="muted">em ${fmtDate(f.trial_ends_at)}</div>` }
+      : { key: 'trial', html: `<span class="badge b-trial">Em teste</span><div class="muted">até ${fmtDate(f.trial_ends_at)}</div>` };
+  }
+  const label = { beta: 'Beta', active: 'Assinante', blocked: 'Bloqueada' }[f.access_status];
+  return { key: f.access_status, html: `<span class="badge b-${f.access_status}">${label}</span>` };
+}
+
+function renderFamilies() {
+  const q = $('search').value.trim().toLowerCase();
+  const st = $('statusFilter').value;
+  const rows = families.filter((f) => {
+    const s = situation(f).key;
+    const text = `${f.guardian_emails || ''} ${f.children_names || ''}`.toLowerCase();
+    return (!q || text.includes(q)) && (!st || s === st);
+  });
+  $('families').innerHTML = rows.length ? rows.map((f) => {
+    const s = situation(f);
+    return `<tr>
+      <td><b>${esc(f.guardian_emails || '(sem e-mail)')}</b>${f.access_note ? `<div class="muted">${esc(f.access_note)}</div>` : ''}</td>
+      <td>${esc(f.children_count)}${f.children_names ? `<div class="muted">${esc(f.children_names)}</div>` : ''}</td>
+      <td>${s.html}</td>
+      <td>${esc(f.sheets_7d)} folhas/7 dias<div class="muted">${esc(f.sheets_total)} no total · última: ${fmtDateTime(f.last_activity)}</div></td>
+      <td>${fmtDate(f.created_at)}</td>
+      <td class="actions">
+        ${f.access_status !== 'beta' ? `<button class="small" data-act="beta" data-id="${f.family_id}">Tornar beta</button>` : ''}
+        <button class="small ghost" data-act="trial" data-id="${f.family_id}">Teste +14 dias</button>
+        ${f.access_status !== 'active' ? `<button class="small green" data-act="active" data-id="${f.family_id}">Assinante</button>` : ''}
+        ${f.access_status !== 'blocked' ? `<button class="small warn" data-act="blocked" data-id="${f.family_id}">Bloquear</button>` : ''}
+      </td></tr>`;
+  }).join('') : `<tr><td colspan="6" class="muted">Nenhuma família encontrada.</td></tr>`;
+}
+
+$('families').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const act = b.dataset.act;
+  const labels = { beta: 'marcar como BETA', trial: 'dar mais 14 dias de teste para', active: 'marcar como ASSINANTE', blocked: 'BLOQUEAR' };
+  const note = prompt(`Confirmar: ${labels[act]} esta família?\n\nObservação (opcional):`, '');
+  if (note === null) return;
+  b.disabled = true;
+  const { error } = await sb.rpc('admin_set_access', {
+    target_family: b.dataset.id, new_status: act, trial_days: act === 'trial' ? 14 : null, note: note.trim() || null,
+  });
+  if (error) { b.disabled = false; return msg('panelMsg', 'Não foi possível alterar: ' + error.message); }
+  msg('panelMsg', 'Situação atualizada. O app da família muda na próxima sincronização (ao abrir ou tocar em "Verificar").', true);
+  await loadAll();
+});
+
+function renderAdmins(list) {
+  $('admins').innerHTML = list.map((a) => `<tr><td><b>${esc(a.email)}</b><div class="muted">desde ${fmtDate(a.created_at)}</div></td>
+    <td style="text-align:right">${a.email === $('me').textContent ? '<span class="muted">você</span>' : `<button class="small warn" data-remove="${a.user_id}">Remover</button>`}</td></tr>`).join('');
+}
+$('admins').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-remove]');
+  if (!b || !confirm('Remover este administrador?')) return;
+  const { error } = await sb.rpc('admin_remove', { admin_user: b.dataset.remove });
+  if (error) return msg('adminMsg', error.message);
+  msg('adminMsg', 'Administrador removido.', true);
+  loadAll();
+});
+$('addAdmin').onclick = async () => {
+  const email = $('newAdmin').value.trim();
+  if (!email) return;
+  const { error } = await sb.rpc('admin_add', { admin_email: email });
+  if (error) return msg('adminMsg', error.message);
+  $('newAdmin').value = '';
+  msg('adminMsg', 'Administrador incluído.', true);
+  loadAll();
+};
+
+
+// ---------- Versões do app ----------
+const toHex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+$('relFile').onchange = () => {
+  const name = $('relFile').files[0]?.name || '';
+  const abi = ['arm64-v8a', 'armeabi-v7a', 'x86_64'].find((a) => name.includes(a));
+  if (abi) $('relAbi').value = abi;
+};
+
+async function loadReleases() {
+  const { data, error } = await sb.from('app_releases').select('*').order('version_code', { ascending: false }).order('abi');
+  if (error) { $('releases').innerHTML = `<tr><td class="muted">Rode o script 0004 no Supabase para ativar as versões.</td></tr>`; return; }
+  const next = data.length ? Math.max(...data.map((r) => r.version_code)) + 1 : '';
+  if (!$('relCode').value && next) $('relCode').placeholder = `ex.: ${next}`;
+  $('releases').innerHTML = data.length ? data.map((r) => `<tr>
+    <td><b>${esc(r.version_name)}</b> <span class="muted">(nº ${esc(r.version_code)} · ${esc(r.abi)} · ${(r.size_bytes / 1048576).toFixed(0)} MB)</span>
+      ${r.mandatory ? '<span class="badge b-blocked">obrigatória</span>' : ''}
+      <div class="muted">${esc(r.notes || '')} · publicada em ${fmtDateTime(r.published_at)}</div></td>
+    <td style="text-align:right"><button class="small warn" data-release="${r.id}" data-path="${esc(r.apk_path)}">Excluir</button></td></tr>`).join('')
+    : '<tr><td class="muted">Nenhuma versão publicada ainda.</td></tr>';
+}
+
+$('publish').onclick = async () => {
+  const file = $('relFile').files[0];
+  const name = $('relName').value.trim();
+  const code = parseInt($('relCode').value, 10);
+  const abi = $('relAbi').value;
+  if (!file || !name || !code) return msg('relMsg', 'Escolha o APK e preencha a versão e o número.');
+  if (!window.crypto?.subtle) return msg('relMsg', 'Este navegador não consegue calcular a assinatura do arquivo. Use o painel pelo site (https).');
+  $('publish').disabled = true;
+  try {
+    msg('relMsg', 'Calculando a assinatura do arquivo…', true);
+    const hash = toHex(await crypto.subtle.digest('SHA-256', await file.arrayBuffer()));
+    const path = `v${code}/${abi}/growstep-${name}-${abi}.apk`;
+    msg('relMsg', `Enviando ${(file.size / 1048576).toFixed(0)} MB…`, true);
+    const up = await sb.storage.from('releases').upload(path, file, { contentType: 'application/vnd.android.package-archive', upsert: true });
+    if (up.error) throw up.error;
+    const { data: { session } } = await sb.auth.getSession();
+    const ins = await sb.from('app_releases').insert({
+      version_code: code, version_name: name, abi, apk_path: path, sha256: hash, size_bytes: file.size,
+      notes: $('relNotes').value.trim() || null, mandatory: $('relMandatory').checked, published_by: session.user.id,
+    });
+    if (ins.error) { await sb.storage.from('releases').remove([path]); throw ins.error; }
+    msg('relMsg', `Versão ${name} (${abi}) publicada. Os aparelhos com esse processador vão receber o aviso na próxima sincronização.`, true);
+    $('relFile').value = '';
+    loadReleases();
+  } catch (e) {
+    msg('relMsg', 'Não foi possível publicar: ' + (e.message || e));
+  } finally {
+    $('publish').disabled = false;
+  }
+};
+
+$('releases').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-release]');
+  if (!b || !confirm('Excluir esta versão? Aparelhos que ainda não atualizaram deixam de receber o aviso dela.')) return;
+  await sb.storage.from('releases').remove([b.dataset.path]);
+  const { error } = await sb.from('app_releases').delete().eq('id', b.dataset.release);
+  if (error) return msg('relMsg', error.message);
+  msg('relMsg', 'Versão excluída.', true);
+  loadReleases();
+});
+$('refresh').onclick = loadAll;
+$('search').oninput = renderFamilies;
+$('statusFilter').onchange = renderFamilies;
+start();
+</script>
+</body>
+</html>
