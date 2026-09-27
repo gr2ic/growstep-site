@@ -132,7 +132,7 @@
       </div>
       <label for="relNotes">O que mudou (aparece para a família)</label>
       <textarea id="relNotes" rows="3" placeholder="ex.: Rascunho com caneta nas folhas de Matemática."></textarea>
-      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="relMandatory" style="width:auto"> Atualização obrigatória (o app não segue sem atualizar)</label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="relMandatory" style="width:auto"> Atualização obrigatória (o app não segue sem atualizar). Depois de publicada, dá para mudar na lista abaixo.</label>
       <p><button id="publish">Publicar versão</button></p>
       <div id="relMsg" class="msg"></div>
       <table style="margin-top:10px"><tbody id="releases"></tbody></table>
@@ -330,7 +330,7 @@ async function loadReleases() {
     <td><b>${esc(r.version_name)}</b> <span class="muted">(nº ${esc(r.version_code)} · ${esc(r.abi)} · ${(r.size_bytes / 1048576).toFixed(0)} MB)</span>
       ${r.mandatory ? '<span class="badge b-blocked">obrigatória</span>' : ''}
       <div class="muted">${esc(r.notes || '')} · publicada em ${fmtDateTime(r.published_at)}</div></td>
-    <td style="text-align:right"><button class="small warn" data-release="${r.id}" data-path="${esc(r.apk_path)}">Excluir</button></td></tr>`).join('')
+    <td style="text-align:right;white-space:nowrap"><button class="small" data-mandatory="${r.version_code}" data-value="${r.mandatory ? 'false' : 'true'}">${r.mandatory ? 'Tornar opcional' : 'Tornar obrigatória'}</button> <button class="small warn" data-release="${r.id}" data-path="${esc(r.apk_path)}">Excluir</button></td></tr>`).join('')
     : '<tr><td class="muted">Nenhuma versão publicada ainda.</td></tr>';
 }
 
@@ -366,6 +366,15 @@ $('publish').onclick = async () => {
 };
 
 $('releases').addEventListener('click', async (e) => {
+  // Obrigatória/opcional depois de publicada: vale para todos os aparelhos da mesma versão.
+  const m = e.target.closest('button[data-mandatory]');
+  if (m) {
+    const mandatory = m.dataset.value === 'true';
+    const { error } = await sb.from('app_releases').update({ mandatory }).eq('version_code', m.dataset.mandatory);
+    if (error) return msg('relMsg', error.message);
+    msg('relMsg', mandatory ? 'Versão marcada como obrigatória: o app não segue sem atualizar.' : 'Versão marcada como opcional.', true);
+    return loadReleases();
+  }
   const b = e.target.closest('button[data-release]');
   if (!b || !confirm('Excluir esta versão? Aparelhos que ainda não atualizaram deixam de receber o aviso dela.')) return;
   await sb.storage.from('releases').remove([b.dataset.path]);
